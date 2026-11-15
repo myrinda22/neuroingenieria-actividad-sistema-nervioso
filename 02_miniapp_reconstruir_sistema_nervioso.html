@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reconstruye el sistema nervioso</title>
+<style>
+  :root{
+    --bg:#f6f8fb;
+    --card:#ffffff;
+    --ink:#18324a;
+    --muted:#6b7c8f;
+    --blue:#236fa1;
+    --blue2:#1a63a9;
+    --teal:#1f9d8a;
+    --amber:#f2b134;
+    --red:#c94b4b;
+    --line:#d9e2ec;
+    --shadow:0 10px 28px rgba(28,55,90,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,#eef5fb 0%,var(--bg) 35%,#fff 100%);color:var(--ink)}
+  .wrap{max-width:1180px;margin:0 auto;padding:24px}
+  .hero{background:linear-gradient(135deg,#123b5d,#236fa1 60%,#2b8bba);color:#fff;border-radius:24px;padding:28px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.08);right:-80px;top:-100px}
+  .hero h1{margin:0 0 8px;font-size:clamp(28px,4vw,46px)}
+  .hero p{margin:0;max-width:850px;line-height:1.5}
+  .progress{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .pill{background:rgba(255,255,255,.16);padding:8px 12px;border-radius:999px;font-size:14px}
+  .pill.active{background:#fff;color:#123b5d;font-weight:700}
+
+  .panel{background:var(--card);border-radius:20px;padding:22px;margin-top:20px;box-shadow:var(--shadow)}
+  .panel h2{margin:0 0 8px;color:var(--blue)}
+  .panel p{color:var(--muted);line-height:1.55}
+  .topline{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap}
+  .timer{font-weight:700;color:var(--blue2);background:#eef6fb;padding:8px 12px;border-radius:12px}
+
+  .workspace{display:grid;grid-template-columns:280px 1fr;gap:18px;margin-top:18px}
+  .bank{background:#f7fafc;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:520px}
+  .bank h3{margin-top:0;font-size:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{padding:9px 12px;border-radius:999px;background:#fff;border:1px solid #b9c9d8;cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,.04);user-select:none}
+  .chip:active{cursor:grabbing}
+  .chip.used{opacity:.35;pointer-events:none}
+
+  .map{position:relative;min-height:520px;background:linear-gradient(180deg,#fbfdff,#f7fbfe);border:1px solid var(--line);border-radius:16px;padding:18px;overflow:auto}
+  .center-node{margin:0 auto 18px;width:max-content;max-width:90%;padding:14px 22px;border-radius:16px;background:var(--blue);color:#fff;font-weight:800;font-size:18px;box-shadow:0 8px 16px rgba(35,111,161,.2)}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:14px;align-items:start}
+  .branch{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;min-height:120px}
+  .branch h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}
+  .drop{min-height:46px;border:2px dashed #b8c7d6;border-radius:12px;padding:8px;margin-top:8px;background:#fbfdff;display:flex;align-items:center;justify-content:center;text-align:center;color:#8ba0b4;font-size:14px}
+  .drop.over{border-color:var(--teal);background:#eefaf7}
+  .drop.filled{border-style:solid;border-color:#9cc0d7;color:var(--ink);font-weight:700;background:#f4f9fc}
+  .drop.correct{border-color:#2aa876;background:#edf9f4}
+  .drop.wrong{border-color:#d75f5f;background:#fff1f1}
+  .subgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  button{appearance:none;border:0;border-radius:12px;padding:11px 16px;font-weight:700;cursor:pointer}
+  .primary{background:var(--blue);color:#fff}
+  .secondary{background:#eaf2f7;color:var(--blue)}
+  .ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  button:hover{filter:brightness(.98)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+
+  .scenario{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;background:#fff7df;border:1px solid #f2cf79;border-radius:16px;padding:16px;margin-top:16px}
+  .path{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+  .step{padding:9px 12px;border-radius:10px;background:#edf4f8;border:1px solid #c9dbe7}
+  .step.active{background:#dff7ef;border-color:#40b78d;box-shadow:0 0 0 4px rgba(64,183,141,.10)}
+  .arrow{color:#7890a5;font-weight:900}
+  .feedback{margin-top:14px;padding:14px;border-radius:14px;display:none;line-height:1.45}
+  .feedback.show{display:block}
+  .feedback.ok{background:#edf9f4;border:1px solid #9bd9c3;color:#17684f}
+  .feedback.warn{background:#fff3f3;border:1px solid #e3a2a2;color:#8f3131}
+
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px}
+  .compare-box{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fbfdff}
+  .compare-box h3{margin-top:0}
+  .ref-flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;line-height:1.4}
+  .ref-chip{padding:8px 11px;border-radius:10px;background:#eef6fb;border:1px solid #bdd5e5}
+  .diff-list{margin:0;padding-left:20px}
+  .diff-list li{margin:8px 0}
+
+  .neuro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  .neuro-card{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff;cursor:pointer;transition:.2s transform,.2s box-shadow}
+  .neuro-card:hover{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.08)}
+  .neuro-card.selected{border-color:var(--teal);background:#eefaf7}
+  .neuro-card strong{display:block;color:var(--blue);margin-bottom:4px}
+  .note{font-size:13px;color:var(--muted)}
+  .hidden{display:none!important}
+
+  @media (max-width:900px){
+    .workspace{grid-template-columns:1fr}
+    .grid{grid-template-columns:repeat(2,minmax(140px,1fr))}
+    .compare-grid{grid-template-columns:1fr}
+    .neuro-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:560px){
+    .wrap{padding:12px}.hero{padding:22px}.grid{grid-template-columns:1fr}.neuro-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <h1>Reconstruye el sistema nervioso</h1>
+    <p>Organiza los conceptos para explicar funcionalmente cómo entra la información, cómo se procesa y cómo se genera una respuesta. Después, pon a prueba tu modelo con una señal.</p>
+    <div class="progress">
+      <span class="pill active" id="p1">1. Construye</span>
+      <span class="pill" id="p2">2. Pon a prueba</span>
+      <span class="pill" id="p3">3. Compara y corrige</span>
+      <span class="pill" id="p4">4. Piensa como neuroingeniero</span>
+    </div>
+  </section>
+
+  <section class="panel" id="stage1">
+    <div class="topline">
+      <div>
+        <h2>1. Construye el mapa funcional</h2>
+        <p>Arrastra cada concepto al lugar que consideres adecuado. No buscamos memorizar anatomía: queremos representar el flujo de información.</p>
+      </div>
+      <div class="timer" id="timer">07:00</div>
+    </div>
+
+    <div class="workspace">
+      <aside class="bank">
+        <h3>Banco de conceptos</h3>
+        <div class="chips" id="chips"></div>
+        <p class="note">Tip: puedes mover una tarjeta nuevamente si cambias de opinión.</p>
+      </aside>
+
+      <div class="map">
+        <div class="center-node">SISTEMA NERVIOSO</div>
+        <div class="grid">
+          <div class="branch">
+            <h4>División 1</h4>
+            <div class="drop" data-slot="snc">Arrastra aquí</div>
+            <div class="subgrid">
+              <div class="drop" data-slot="cerebro">Subcomponente</div>
+              <div class="drop" data-slot="medula">Subcomponente</div>
+            </div>
+          </div>
+
+          <div class="branch">
+            <h4>División 2</h4>
+            <div class="drop" data-slot="snp">Arrastra aquí</div>
+            <div class="subgrid">
+              <div class="drop" data-slot="aferente">Ruta</div>
+              <div class="drop" data-slot="eferente">Ruta</div>
+            </div>
+          </div>
+
+          <div class="branch">
+            <h4>Entrada de información</h4>
+            <div class="drop" data-slot="sensorial">Función</div>
+            <div class="drop" data-slot="receptor">Origen</div>
+          </div>
+
+          <div class="branch">
+            <h4>Salida / respuesta</h4>
+            <div class="drop" data-slot="motor">Función</div>
+            <div class="drop" data-slot="somatico">Rama</div>
+            <div class="drop" data-slot="autonomo">Rama</div>
+            <div class="subgrid">
+              <div class="drop" data-slot="simpatico">Subrama</div>
+              <div class="drop" data-slot="parasimpatico">Subrama</div>
+            </div>
+            <div class="drop" data-slot="musculo">Efector</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="testBtn">Probar mi modelo</button>
+      <button class="ghost" id="resetBtn">Reiniciar mapa</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="stage2">
+    <h2>2. Pon a prueba tu modelo</h2>
+    <p>Una persona toca accidentalmente una superficie caliente. ¿Puede tu modelo representar correctamente el recorrido de la información?</p>
+    <div class="scenario">
+      <div><strong>Escenario:</strong> estímulo térmico doloroso → detección → procesamiento → respuesta motora.</div>
+      <div style="font-size:34px">🔥✋</div>
+    </div>
+    <div class="path" id="path">
+      <span class="step" data-step="0">Receptor</span><span class="arrow">→</span>
+      <span class="step" data-step="1">Aferente</span><span class="arrow">→</span>
+      <span class="step" data-step="2">SNC</span><span class="arrow">→</span>
+      <span class="step" data-step="3">Eferente</span><span class="arrow">→</span>
+      <span class="step" data-step="4">Motor</span><span class="arrow">→</span>
+      <span class="step" data-step="5">Músculo</span>
+    </div>
+    <div class="actions">
+      <button class="primary" id="signalBtn">Enviar señal</button>
+      <button class="secondary" id="backBtn">Volver al mapa</button>
+      <button class="ghost" id="compareBtn">Comparar con modelo de referencia</button>
+    </div>
+    <div class="feedback" id="signalFeedback"></div>
+  </section>
+
+  <section class="panel hidden" id="stage3">
+    <h2>3. Compara y corrige</h2>
+    <p>Observa únicamente las diferencias relevantes. La meta no es memorizar un diagrama, sino entender el flujo funcional.</p>
+    <div class="compare-grid">
+      <div class="compare-box">
+        <h3>Modelo funcional de referencia</h3>
+        <div class="ref-flow">
+          <span class="ref-chip">Receptor</span><span>→</span>
+          <span class="ref-chip">Aferente / sensorial</span><span>→</span>
+          <span class="ref-chip">SNP</span><span>→</span>
+          <span class="ref-chip">SNC</span><span>→</span>
+          <span class="ref-chip">Eferente / motor</span><span>→</span>
+          <span class="ref-chip">Somático / Autónomo</span><span>→</span>
+          <span class="ref-chip">Efector</span>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+        <p><strong>SNC:</strong> cerebro y médula espinal.</p>
+        <p><strong>SNP:</strong> vías aferentes y eferentes.</p>
+        <p><strong>Autónomo:</strong> simpático y parasimpático.</p>
+      </div>
+      <div class="compare-box">
+        <h3>Diferencias detectadas</h3>
+        <ul class="diff-list" id="diffList"></ul>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="neuroBtn">Continuar: pensar como neuroingeniero</button>
+      <button class="secondary" id="editBtn">Editar mi mapa</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="stage4">
+    <h2>4. Piensa como neuroingeniero</h2>
+    <p>Si quisieras medir o intervenir en este flujo de información, ¿en qué punto colocarías tecnología? Selecciona las opciones para explorar ejemplos.</p>
+    <div class="neuro-grid">
+      <div class="neuro-card" data-info="EEG: registra actividad eléctrica cerebral desde el cuero cabelludo. Permite estudiar ritmos, potenciales evocados e interfaces cerebro-computadora."><strong>Cerebro</strong><span>EEG / BCI</span></div>
+      <div class="neuro-card" data-info="ENG: registra actividad de nervios periféricos. Es útil en interfaces neurales y estudios de conducción nerviosa."><strong>Nervio periférico</strong><span>ENG</span></div>
+      <div class="neuro-card" data-info="EMG: registra la actividad eléctrica asociada con la activación muscular. Es común en biomecánica, control motor y prótesis."><strong>Músculo</strong><span>EMG</span></div>
+      <div class="neuro-card" data-info="EDA: refleja cambios autonómicos relacionados con la conductancia de la piel y puede usarse para estudiar activación simpática."><strong>Respuesta autonómica</strong><span>EDA</span></div>
+    </div>
+    <div class="feedback ok show" id="neuroInfo" style="margin-top:16px">Selecciona una tarjeta para explorar cómo la Neuroingeniería mide el sistema.</div>
+    <div class="actions">
+      <button class="ghost" id="restartAll">Reiniciar experiencia</button>
+    </div>
+  </section>
+</div>
+
+<script>
+const concepts = [
+  ['SNC','snc'],['SNP','snp'],['cerebro','cerebro'],['médula','medula'],['aferente','aferente'],['eferente','eferente'],
+  ['somático','somatico'],['autónomo','autonomo'],['simpático','simpatico'],['parasimpático','parasimpatico'],['sensorial','sensorial'],
+  ['motor','motor'],['músculo','musculo'],['receptor','receptor']
+];
+const expected = Object.fromEntries(concepts.map(([label,key])=>[key,label]));
+const chips = document.getElementById('chips');
+const drops = [...document.querySelectorAll('.drop')];
+let assignments = {};
+let dragged = null;
+
+function buildChips(){
+  chips.innerHTML='';
+  concepts.forEach(([label,key])=>{
+    const c=document.createElement('div');
+    c.className='chip'; c.draggable=true; c.textContent=label; c.dataset.key=key;
+    c.addEventListener('dragstart',()=>{dragged={label,key,origin:'bank'};});
+    chips.appendChild(c);
+  });
+}
+
+function refresh(){
+  drops.forEach(d=>{
+    const slot=d.dataset.slot;
+    d.classList.remove('filled','correct','wrong');
+    d.textContent=assignments[slot]?.label || placeholder(slot);
+    if(assignments[slot]) d.classList.add('filled');
+  });
+  [...document.querySelectorAll('.chip')].forEach(c=>{
+    const used=Object.values(assignments).some(v=>v.key===c.dataset.key);
+    c.classList.toggle('used',used);
+  });
+}
+function placeholder(slot){
+  if(['cerebro','medula'].includes(slot)) return 'Subcomponente';
+  if(['aferente','eferente'].includes(slot)) return 'Ruta';
+  if(['sensorial','motor'].includes(slot)) return 'Función';
+  if(slot==='receptor') return 'Origen';
+  if(['somatico','autonomo'].includes(slot)) return 'Rama';
+  if(['simpatico','parasimpatico'].includes(slot)) return 'Subrama';
+  if(slot==='musculo') return 'Efector';
+  return 'Arrastra aquí';
+}
+
+drops.forEach(d=>{
+  d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('over')});
+  d.addEventListener('dragleave',()=>d.classList.remove('over'));
+  d.addEventListener('drop',e=>{
+    e.preventDefault();d.classList.remove('over');
+    if(!dragged) return;
+    // remove same concept from any previous slot
+    Object.keys(assignments).forEach(s=>{if(assignments[s].key===dragged.key) delete assignments[s]});
+    assignments[d.dataset.slot]={label:dragged.label,key:dragged.key};
+    refresh();
+  });
+  d.addEventListener('dragstart',()=>{});
+  d.addEventListener('dblclick',()=>{delete assignments[d.dataset.slot];refresh();});
+});
+
+buildChips();refresh();
+
+document.getElementById('resetBtn').onclick=()=>{assignments={};refresh();};
+
+document.getElementById('testBtn').onclick=()=>{
+  document.getElementById('stage2').classList.remove('hidden');
+  document.getElementById('stage2').scrollIntoView({behavior:'smooth'});
+  setProgress(2);
+};
+
+document.getElementById('backBtn').onclick=()=>{
+  document.getElementById('stage1').scrollIntoView({behavior:'smooth'});setProgress(1);
+};
+
+function setProgress(n){
+  [1,2,3,4].forEach(i=>document.getElementById('p'+i).classList.toggle('active',i===n));
+}
+
+function slotHas(slot,key){return assignments[slot]?.key===key;}
+
+const pathChecks=[
+  ()=>slotHas('receptor','receptor'),
+  ()=>slotHas('aferente','aferente') && slotHas('sensorial','sensorial'),
+  ()=>slotHas('snc','snc') && slotHas('cerebro','cerebro') && slotHas('medula','medula'),
+  ()=>slotHas('eferente','eferente'),
+  ()=>slotHas('motor','motor'),
+  ()=>slotHas('musculo','musculo')
+];
+
+async function animateSignal(){
+  const steps=[...document.querySelectorAll('.step')];
+  const fb=document.getElementById('signalFeedback');
+  fb.className='feedback';fb.textContent='';
+  steps.forEach(s=>s.classList.remove('active'));
+  for(let i=0;i<steps.length;i++){
+    steps[i].classList.add('active');
+    await new Promise(r=>setTimeout(r,450));
+    if(!pathChecks[i]()){
+      fb.className='feedback warn show';
+      const msgs=[
+        'La señal no encuentra un receptor correctamente identificado. Revisa dónde comienza la entrada sensorial.',
+        'La información sensorial no logra entrar correctamente. Revisa la vía aferente y su relación con la función sensorial.',
+        'La señal no encuentra correctamente el SNC. Revisa SNC, cerebro y médula.',
+        'La orden de salida no puede continuar. Revisa la vía eferente.',
+        'Falta identificar correctamente la función motora.',
+        'La respuesta no llega al efector. Revisa dónde colocaste el músculo.'
+      ];
+      fb.textContent=msgs[i];
+      return;
+    }
+  }
+  fb.className='feedback ok show';
+  fb.textContent='¡La señal completó el recorrido! Tu modelo representa correctamente la ruta funcional básica estímulo → entrada sensorial → procesamiento → salida motora → respuesta.';
+}
+document.getElementById('signalBtn').onclick=animateSignal;
+
+document.getElementById('compareBtn').onclick=()=>{
+  showComparison();
+  document.getElementById('stage3').classList.remove('hidden');
+  document.getElementById('stage3').scrollIntoView({behavior:'smooth'});setProgress(3);
+};
+
+function showComparison(){
+  const list=document.getElementById('diffList');list.innerHTML='';
+  let diffs=0;
+  drops.forEach(d=>{
+    const slot=d.dataset.slot;
+    const ok=assignments[slot]?.key===slot;
+    d.classList.toggle('correct',ok);
+    d.classList.toggle('wrong',!!assignments[slot] && !ok);
+    if(!ok){
+      diffs++;
+      const li=document.createElement('li');
+      const actual=assignments[slot]?.label || 'sin respuesta';
+      li.innerHTML=`En <strong>${slotLabel(slot)}</strong> colocaste <em>${actual}</em>. La referencia esperada es <strong>${expected[slot]}</strong>.`;
+      list.appendChild(li);
+    }
+  });
+  if(diffs===0){const li=document.createElement('li');li.textContent='No se detectaron diferencias relevantes. El mapa funcional está completo.';list.appendChild(li)}
+}
+function slotLabel(s){
+  const labels={snc:'División central',snp:'División periférica',cerebro:'Componente del SNC',medula:'Componente del SNC',aferente:'Ruta de entrada',eferente:'Ruta de salida',sensorial:'Función de entrada',receptor:'Origen sensorial',motor:'Función de salida',somatico:'Rama motora',autonomo:'Rama motora',simpatico:'Subrama autónoma',parasimpatico:'Subrama autónoma',musculo:'Efector'};
+  return labels[s]||s;
+}
+
+document.getElementById('editBtn').onclick=()=>{document.getElementById('stage1').scrollIntoView({behavior:'smooth'});setProgress(1)};
+document.getElementById('neuroBtn').onclick=()=>{document.getElementById('stage4').classList.remove('hidden');document.getElementById('stage4').scrollIntoView({behavior:'smooth'});setProgress(4)};
+
+document.querySelectorAll('.neuro-card').forEach(c=>c.onclick=()=>{
+  document.querySelectorAll('.neuro-card').forEach(x=>x.classList.remove('selected'));
+  c.classList.add('selected');
+  document.getElementById('neuroInfo').textContent=c.dataset.info;
+});
+
+document.getElementById('restartAll').onclick=()=>{assignments={};refresh();document.getElementById('stage2').classList.add('hidden');document.getElementById('stage3').classList.add('hidden');document.getElementById('stage4').classList.add('hidden');document.getElementById('stage1').scrollIntoView({behavior:'smooth'});setProgress(1);};
+
+// 7-minute visual timer. It does not lock the activity when time is over.
+let seconds=420;
+setInterval(()=>{
+  if(seconds>0) seconds--;
+  const m=String(Math.floor(seconds/60)).padStart(2,'0');
+  const s=String(seconds%60).padStart(2,'0');
+  const el=document.getElementById('timer');
+  el.textContent=`${m}:${s}`;
+  if(seconds===0) el.textContent='Tiempo sugerido cumplido';
+},1000);
+</script>
+</body>
+</html>
